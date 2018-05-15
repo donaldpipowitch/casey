@@ -1,0 +1,7 @@
+[package]
+name = "casey"
+version = "0.1.0"
+authors = ["Donald Pipowitch <pipo@senaeh.de>"]
+
+[dependencies]
+termion = {git = "https://github.com/redox-os/termion"}
