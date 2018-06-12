@@ -105,7 +105,8 @@ fn main() {
                 if state.value.is_empty() {
                     break;
                 } else {
-                    write!(stdout, "{}\n", Goto(1, state.start_row as u16 + 2)).unwrap();
+                    write!(stdout, "{}", Goto(1, state.start_row as u16 + 2)).unwrap();
+                    write!(stdout, "\n").unwrap();
                     stdout.flush().unwrap();
                     state.value = String::new();
                     state.index = 0;
