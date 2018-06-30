@@ -1,11 +1,11 @@
 extern crate termion;
 
+use std::io::{stdin, stdout, Write};
 use termion::cursor::{DetectCursorPos, Goto};
 use termion::event::Key;
-use termion::{clear, color, terminal_size};
 use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
-use std::io::{stdin, stdout, Write};
+use termion::{clear, color, terminal_size};
 
 #[derive(Debug)]
 struct State {
@@ -105,12 +105,21 @@ fn main() {
                 if state.value.is_empty() {
                     break;
                 } else {
+                    let (_col, start_row) = stdout.cursor_pos().unwrap();
+                    let (_total_cols, total_rows) = terminal_size().unwrap();
+                    let end_of_screen = start_row + 2 == total_rows;
+
                     write!(stdout, "{}", Goto(1, state.start_row as u16 + 2)).unwrap();
                     write!(stdout, "\n").unwrap();
                     stdout.flush().unwrap();
                     state.value = String::new();
+
                     state.index = 0;
-                    state.start_row += 2;
+                    if end_of_screen {
+                        state.start_row += 2;
+                    } else {
+                        state.start_row += 3;
+                    }
                 }
             }
             Key::Char(key) => {
