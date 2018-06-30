@@ -18,7 +18,7 @@ You can than start to type any string. This string will be camel cased immediate
 
 Here is an example of what you would see:
 
-![an example of a running Casey session](./hello-world.png)
+![an example of a running Casey session](./hello-world.gif)
 
 ## Contribute
 
