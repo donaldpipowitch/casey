@@ -12,7 +12,6 @@ struct State {
     value: String,
     index: usize,
     start_row: usize,
-    rows: usize,
 }
 
 impl State {
@@ -21,7 +20,6 @@ impl State {
             value: String::new(),
             index: 0,
             start_row: 0,
-            rows: 1,
         }
     }
 }
@@ -46,8 +44,8 @@ fn format_value(state: &State) -> String {
 }
 
 fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
-    // clear all "known" rows
-    for i in 0..state.rows {
+    // clear rows
+    for i in 0..3 {
         write!(
             stdout,
             "{}{}",
@@ -63,7 +61,6 @@ fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
         if state.start_row + i > total_rows as usize {
             write!(stdout, "\n").unwrap();
             state.start_row -= 1;
-            state.rows += 1;
         }
         write!(
             stdout,

@@ -49,6 +49,29 @@ authors = ["Donald Pipowitch <pipo@senaeh.de>"]
 termion = {git = "https://github.com/redox-os/termion"}
 ```
 
+The whole application was created in the `src/main.rs` file. First we'll import a couple of modules which we need for handling the terminal. Most of them should be quite self-explanatory. If you don't know them - no worry. You'll see how they are used in a bit.
+
+```rs
+extern crate termion;
+
+use std::io::{stdin, stdout, Write};
+use termion::cursor::{DetectCursorPos, Goto};
+use termion::event::Key;
+use termion::input::TermRead;
+use termion::raw::{IntoRawMode, RawTerminal};
+use termion::{clear, color, terminal_size};
+```
+
+Before we move on I'll give you an overview about the logic that we will implement. Let us recap our requirements:
+- The user should be able to type something to the terminal.
+- We'll immediately uppercase and lowercase the input and show the result _below_ the input of the user.
+- Because we ignore line breaks for now, this will give us a total of three lines which we'll show: the input, the uppercased value and the lowercased value.
+- And to make everything a little bit more interesting:
+  - There will be an empty state which tells the user to start typing.
+  - You can remove a character by pressing delete and you can use the left and right arrows for navigation.
+  - By pressing Enter we'll "save" the current value and start typing on a completely new line or exit if the value is empty.
+  - You can exit via Ctrl+C.
+
 ---
 
 Thanks for reading so far. I'd be happy to get feedback about this _"Tutorial as a `README.md`"_ format. It is an experiment to teach coding. I'd also be happy if you can point out.
