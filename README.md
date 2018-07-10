@@ -51,7 +51,7 @@ termion = {git = "https://github.com/redox-os/termion"}
 
 The whole application was created in the `src/main.rs` file. First we'll import a couple of modules which we need for handling the terminal. Most of them should be quite self-explanatory. If you don't know them - no worry. You'll see how they are used in a bit.
 
-```rs
+```rust
 extern crate termion;
 
 use std::io::{stdin, stdout, Write};
