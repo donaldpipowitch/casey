@@ -1,16 +1,23 @@
 extern crate termion;
 
 use std::io::{stdin, stdout, Write};
-use termion::cursor::{DetectCursorPos, Goto};
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::{IntoRawMode, RawTerminal};
-use termion::{clear, color, terminal_size};
+use termion::{clear,
+              color,
+              cursor::{DetectCursorPos, Goto},
+              event::Key,
+              input::TermRead,
+              raw::{IntoRawMode, RawTerminal},
+              terminal_size};
 
 #[derive(Debug)]
 struct State {
+    // contains the typed input of the user
     value: String,
-    index: usize,
+    // tracks the cursor position (so the user can navigate with the
+    // left and right arrow keys within the input)
+    cursor_pos: usize,
+    // helps to keep track of the line where the user currently types
+    // this is partially needed by the render function as well
     start_row: usize,
 }
 
@@ -18,10 +25,54 @@ impl State {
     fn new() -> State {
         State {
             value: String::new(),
-            index: 0,
+            cursor_pos: 0,
             start_row: 0,
         }
     }
+}
+
+fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
+    // clear rows to have a solid base
+    // this basically "writes" clear::CurrentLine beginning
+    // at the start_row and the next two rows
+    for i in 0..3 {
+        write!(
+            stdout,
+            "{}{}",
+            Goto(1, state.start_row as u16 + i as u16),
+            clear::CurrentLine
+        ).unwrap();
+    }
+
+    // get the formatted output and write it to the terminal
+    // if the formatted output contains multiple lines, it will
+    // render every line separately (to avoid some render bugs)
+    let formatted = format_value(&state);
+    for (i, line) in formatted.lines().enumerate() {
+        // if we don't have enough space, because we're at the end
+        // of the terminal screen we need to create a new line
+        // and adjust the start_row
+        let (_total_cols, total_rows) = terminal_size().unwrap();
+        if state.start_row + i > total_rows as usize {
+            write!(stdout, "\n").unwrap();
+            state.start_row -= 1;
+        }
+        write!(
+            stdout,
+            "{}{}",
+            Goto(1, state.start_row as u16 + i as u16),
+            line
+        ).unwrap();
+    }
+
+    // update cursor
+    write!(
+        stdout,
+        "{}",
+        Goto(state.cursor_pos as u16 + 1, state.start_row as u16)
+    ).unwrap();
+
+    stdout.flush().unwrap();
 }
 
 fn format_value(state: &State) -> String {
@@ -41,43 +92,6 @@ fn format_value(state: &State) -> String {
             reset = color::Fg(color::Reset),
         )
     }
-}
-
-fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
-    // clear rows
-    for i in 0..3 {
-        write!(
-            stdout,
-            "{}{}",
-            Goto(1, state.start_row as u16 + i as u16),
-            clear::CurrentLine
-        ).unwrap();
-    }
-
-    // write
-    let formatted = format_value(&state);
-    for (i, line) in formatted.lines().enumerate() {
-        let (_total_cols, total_rows) = terminal_size().unwrap();
-        if state.start_row + i > total_rows as usize {
-            write!(stdout, "\n").unwrap();
-            state.start_row -= 1;
-        }
-        write!(
-            stdout,
-            "{}{}",
-            Goto(1, state.start_row as u16 + i as u16),
-            line
-        ).unwrap();
-    }
-
-    // update cursor
-    write!(
-        stdout,
-        "{}",
-        Goto(state.index as u16 + 1, state.start_row as u16)
-    ).unwrap();
-
-    stdout.flush().unwrap();
 }
 
 fn main() {
@@ -111,7 +125,7 @@ fn main() {
                     stdout.flush().unwrap();
                     state.value = String::new();
 
-                    state.index = 0;
+                    state.cursor_pos = 0;
                     if end_of_screen {
                         state.start_row += 2;
                     } else {
@@ -120,24 +134,24 @@ fn main() {
                 }
             }
             Key::Char(key) => {
-                state.value.insert(state.index, key);
-                state.index += 1;
+                state.value.insert(state.cursor_pos, key);
+                state.cursor_pos += 1;
             }
             // Key::Delete = entf
             Key::Backspace => {
-                if !state.value.is_empty() && state.index != 0 {
-                    state.value.remove(state.index - 1);
-                    state.index -= 1;
+                if !state.value.is_empty() && state.cursor_pos != 0 {
+                    state.value.remove(state.cursor_pos - 1);
+                    state.cursor_pos -= 1;
                 }
             }
             Key::Left => {
-                if state.index > 0 {
-                    state.index -= 1;
+                if state.cursor_pos > 0 {
+                    state.cursor_pos -= 1;
                 }
             }
             Key::Right => {
-                if state.index < state.value.len() - 1 {
-                    state.index += 1;
+                if state.cursor_pos < state.value.len() - 1 {
+                    state.cursor_pos += 1;
                 }
             }
             _ => {}
