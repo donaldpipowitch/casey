@@ -49,10 +49,11 @@ impl State {
         let mut col = (state.col as isize) + col_offset;
         let mut row = (state.row as isize) + row_offset;
 
+        let len = state.value.len() as isize - 1;
         if col <= 0 {
             col = 1;
-        } else if col > (state.value.len() as isize - 1) {
-            col = state.value.len() as isize - 1;
+        } else if col > len {
+            col = len;
         }
 
         State::new_(state.value,
@@ -156,21 +157,17 @@ fn update_state<W: Write>(mut stdout: &mut RawTerminal<W>, mut state: State,
     match key.unwrap() {
         Key::Ctrl('c') => State::done(state),
         Key::Char('\n') => {
-            // If the user presses enter without any text, break
-            // out of the for loop so we can exit.
             if state.value.is_empty() {
-                return State::done(state);
+                // If the user presses enter without any text, exit.
+                State::done(state)
+            } else {
+                let mut row = state.row + 2;
+                if row != state.height {
+                    row += 1;
+                }
+
+                State::new(String::new(), 0, row)
             }
-
-            move_cursor(&mut stdout, 0, state.row + 2);
-            write!(stdout, "\n").unwrap();
-
-            let mut row = state.row + 2;
-            if row != state.height {
-                row += 1;
-            }
-
-            State::new(String::new(), 0, row)
         }
         Key::Char(key) => {
             let mut value = String::from(state.value);
