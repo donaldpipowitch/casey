@@ -13,6 +13,10 @@ use termion::{clear,
 struct State {
     // Contains the typed input from the user.
     value: String,
+    // Number of columns the terminal has.
+    width: usize,
+    // Number of rows the terminal has.
+    height: usize,
     // Tracks cursor position (column).
     // This allows the user to navigate using the left/right arrow keys.
     col: usize,
@@ -25,8 +29,12 @@ struct State {
 
 impl State {
     fn new_(value: String, col: usize, row: usize, done: bool) -> State {
+        let (width, height) = terminal_size().unwrap();
+
         State {
             value: value,
+            width: width as usize,
+            height: height as usize,
             col: col,
             row: row,
             done: done,
@@ -102,12 +110,10 @@ fn render<W: Write>(stdout: &mut RawTerminal<W>, mut state: State) -> State {
     // NOTE: If the formatted output contains multiple lines, it will
     //       render every line separately to avoid render bugs.
     for (i, line) in formatted.lines().enumerate() {
-        let (_total_cols, total_rows) = terminal_size().unwrap();
-
         // If we don't have enough space, due to being at the end
         // of the terminal screen, print newlines to create more space
         // and adjust row accordingly.
-        if state.row + i > total_rows as usize {
+        if state.row + i > state.height {
             write!(stdout, "\n").unwrap();
             state = State::move_cursor(state, 0, -1);
         }
@@ -159,9 +165,8 @@ fn update_state<W: Write>(mut stdout: &mut RawTerminal<W>, mut state: State,
             move_cursor(&mut stdout, 0, state.row + 2);
             write!(stdout, "\n").unwrap();
 
-            let (_total_cols, total_rows) = terminal_size().unwrap();
             let mut row = state.row + 2;
-            if row as u16 != total_rows {
+            if row != state.height {
                 row += 1;
             }
 
