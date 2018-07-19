@@ -43,7 +43,7 @@ impl State {
 
     fn move_cursor(state: State, col_offset: isize, row_offset: isize) -> State {
         let mut col_ = (state.col as isize) + col_offset;
-        let row_ = (state.row as isize) + row_offset;
+        let row = ((state.row as isize) + row_offset) as usize;
 
         let len = state.value.len() as isize - 1;
         if col_ <= 0 {
@@ -53,7 +53,6 @@ impl State {
         }
 
         let col = col_ as usize;
-        let row = row_ as usize;
 
         State { col, row, ..state }
     }
