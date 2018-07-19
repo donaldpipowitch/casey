@@ -31,17 +31,30 @@ impl State {
     }
 }
 
+fn clear_row<W: Write>(stdout: &mut RawTerminal<W>, row: usize) {
+    write!(
+        stdout,
+        "{}{}",
+        Goto(1, row as u16),
+        clear::CurrentLine
+    ).unwrap();
+}
+
+fn move_cursor<W: Write>(stdout: &mut RawTerminal<W>,
+                         cursor_pos: usize, row: usize) {
+    write!(
+        stdout,
+        "{}",
+        Goto(cursor_pos as u16 + 1, row as u16)
+    ).unwrap();
+}
+
 fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
     // clear rows to have a solid base
     // this basically "writes" clear::CurrentLine beginning
     // at the start_row and the next two rows
     for i in 0..3 {
-        write!(
-            stdout,
-            "{}{}",
-            Goto(1, state.start_row as u16 + i as u16),
-            clear::CurrentLine
-        ).unwrap();
+        clear_row(stdout, state.start_row + i);
     }
 
     // get the formatted output and write it to the terminal
@@ -57,20 +70,11 @@ fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
             write!(stdout, "\n").unwrap();
             state.start_row -= 1;
         }
-        write!(
-            stdout,
-            "{}{}",
-            Goto(1, state.start_row as u16 + i as u16),
-            line
-        ).unwrap();
+        move_cursor(stdout, 0, state.start_row + i);
+        write!(stdout, "{}", line).unwrap();
     }
 
-    // update cursor
-    write!(
-        stdout,
-        "{}",
-        Goto(state.cursor_pos as u16 + 1, state.start_row as u16)
-    ).unwrap();
+    move_cursor(stdout, state.cursor_pos, state.start_row);
 
     stdout.flush().unwrap();
 }
