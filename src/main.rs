@@ -15,10 +15,10 @@ struct State {
     value: String,
     // Tracks cursor position (column).
     // This allows the user to navigate using the left/right arrow keys.
-    cursor_pos: usize,
+    col: usize,
     // Tracks the line the user is currently typing on.
     // This is needed by the render() function.
-    start_row: usize,
+    row: usize,
     // True if it should exit, false otherwise.
     done: bool,
 }
@@ -27,8 +27,8 @@ impl State {
     fn new_(value: String, col: usize, row: usize, done: bool) -> State {
         State {
             value: value,
-            cursor_pos: col,
-            start_row: row,
+            col: col,
+            row: row,
             done: done,
         }
     }
@@ -39,13 +39,13 @@ impl State {
 
     fn move_cursor(state: State, col_offset: isize, row_offset: isize) -> State {
         State::new_(state.value,
-                    ((state.cursor_pos as isize) + col_offset) as usize,
-                    ((state.start_row  as isize) + row_offset) as usize,
+                    ((state.col as isize) + col_offset) as usize,
+                    ((state.row  as isize) + row_offset) as usize,
                     state.done)
     }
 
     fn done(state: State) -> State {
-        State::new_(state.value, state.cursor_pos, state.start_row, true)
+        State::new_(state.value, state.col, state.row, true)
     }
 }
 
@@ -66,7 +66,7 @@ fn render<W: Write>(stdout: &mut RawTerminal<W>, mut state: State) -> State {
     // Clear rows so we have a clean "canvas" to work with.
     // The "canvas" is the current line and the following two lines.
     for i in 0..3 {
-        clear_row(stdout, state.start_row + i);
+        clear_row(stdout, state.row + i);
     }
 
     // Get the formatted output.
@@ -80,19 +80,19 @@ fn render<W: Write>(stdout: &mut RawTerminal<W>, mut state: State) -> State {
 
         // If we don't have enough space, due to being at the end
         // of the terminal screen, print newlines to create more space
-        // and adjust start_row accordingly.
-        if state.start_row + i > total_rows as usize {
+        // and adjust row accordingly.
+        if state.row + i > total_rows as usize {
             write!(stdout, "\n").unwrap();
             state = State::move_cursor(state, 0, -1);
         }
 
         // Move the cursor to the start of the line, then print it.
-        move_cursor(stdout, 0, state.start_row + i);
+        move_cursor(stdout, 0, state.row + i);
         write!(stdout, "{}", line).unwrap();
     }
 
     // Move the terminal's cursor to where we want it to be.
-    move_cursor(stdout, state.cursor_pos, state.start_row);
+    move_cursor(stdout, state.col, state.row);
 
     // Flush the cache to ensure everything is printed.
     stdout.flush().unwrap();
@@ -128,7 +128,7 @@ fn update_state<W: Write>(mut stdout: &mut RawTerminal<W>, mut state: State,
             if !state.value.is_empty() {
                 state = State::move_cursor(state, 0, 2);
             }
-            return State::done(state);
+            State::done(state)
         }
         Key::Char('\n') => {
             // If the user presses enter without any text, break
@@ -137,45 +137,48 @@ fn update_state<W: Write>(mut stdout: &mut RawTerminal<W>, mut state: State,
                 return State::done(state);
             }
 
-            move_cursor(&mut stdout, 0, state.start_row + 2);
+            move_cursor(&mut stdout, 0, state.row + 2);
             write!(stdout, "\n").unwrap();
 
             let (_total_cols, total_rows) = terminal_size().unwrap();
-            let mut start_row = state.start_row + 2;
-            if start_row as u16 != total_rows {
-                start_row += 1;
+            let mut row = state.row + 2;
+            if row as u16 != total_rows {
+                row += 1;
             }
 
-            return State::new(String::new(), 0, start_row);
+            State::new(String::new(), 0, row)
         }
         Key::Char(key) => {
             let mut value = String::from(state.value);
             value.push(key);
-            return State::new(value, state.cursor_pos + 1, state.start_row);
+            State::new(value, state.col + 1, state.row)
         }
         Key::Backspace => {
-            if !state.value.is_empty() && state.cursor_pos != 0 {
-                let str_value = &state.value[0..(state.cursor_pos - 1)];
+            if !state.value.is_empty() && state.col != 0 {
+                let str_value = &state.value[0..(state.col - 1)];
                 let value = String::from(str_value);
 
-                return State::new(value, state.cursor_pos - 1,
-                                  state.start_row);
+                State::new(value, state.col - 1, state.row)
+            } else {
+                state
             }
         }
         Key::Left => {
-            if state.cursor_pos > 0 {
-                return State::move_cursor(state, -1, 0)
+            if state.col > 0 {
+                State::move_cursor(state, -1, 0)
+            } else {
+                state
             }
         }
         Key::Right => {
-            if state.cursor_pos < state.value.len() - 1 {
-                return State::move_cursor(state, 1, 0)
+            if state.col < state.value.len() - 1 {
+                State::move_cursor(state, 1, 0)
+            } else {
+                state
             }
         }
-        _ => {}
+        _ => state,
     }
-
-    return state;
 }
 
 fn main() {
