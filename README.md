@@ -22,9 +22,9 @@ Here is an example of what you would see:
 
 ## Contribute
 
-In this section I want to take about how this program was created, so you are able to create similar projets, fork this project or contribute back to it. I'm happy if you can point out any spelling mistakes as I'm not a native english speaker. In general you're allowed to contribute features back to this project (e.g. like multiline support), but keep in mind that I'll only accepts pull requests if this _"Contribute"_ section is kept in sync with the changes. I hope you'll enjoy the read 👋
+In this section I want to talk about how this program was created, so you are able to create similar projets, fork this project or contribute back to it. I'm happy if you can point out any spelling mistakes as I'm not a native english speaker. In general you're allowed to contribute features back to this project (e.g. like adding multiline support), but keep in mind that I'll only accepts pull requests if this _"Contribute"_ section is kept in sync with the changes. I hope you'll enjoy the read 👋
 
-Before we start on word of warning. I found some parts of this code to be quite "flaky". Take [this commit](https://github.com/donaldpipowitch/casey/commit/6df76a451275e1834b280c22702d420164cd738e) as an example. I'd expect that the deleted line behaves like the two new lines - and on Windows they actually did. But not on my Mac. (Funningly enough I tested the original lines again 18 days later and now they work on a Mac. 🤔) There are probably a lot more edge cases like that one, so take everything with a grain of salt.
+Before we start one word of warning. I found some parts of this code to be quite "flaky". Take [this commit](https://github.com/donaldpipowitch/casey/commit/6df76a451275e1834b280c22702d420164cd738e) as an example. I'd expect that the deleted line behaves like the two new lines - and on Windows they actually did. But not on my Mac. (Funningly enough I tested the original lines again 18 days later and now they work on my Mac. 🤔) There are probably a lot more edge cases like that one, so take everything with a grain of salt.
 
 To start make sure to have the same prequisites as mentioned in the _"Usage"_ section, namigly have [Rust installed with `rustup`](https://www.rust-lang.org).
 
@@ -37,7 +37,7 @@ The [`.gitignore`](.gitignore) is the same we get by running `$ cargo init` (see
 **/*.rs.bk
 ```
 
-The [`Cargo.toml`](.Cargo.toml) is _nearly_ the same we get by running `$ cargo init` (see [here](https://doc.rust-lang.org/cargo/reference/manifest.html), if you want to know more about `Cargo.toml` files). The one thing which was added was [`termion`](https://gitlab.redox-os.org/redox-os/termion) as our only dependency. `termion` is needed to create a REPL-like application. As mentioned in the _"Usage"_ section we want to _immediately_ show some transformed output of the user input. `termion` will cover the needs for this like clearing lines or moving the cursor in the terminal. [Because of a bug](https://gitlab.redox-os.org/redox-os/termion/issues/140) I actually specified to use the Git source of this crate. (Thank you @JoshMcguigan for the bug fix!):
+The [`Cargo.toml`](.Cargo.toml) is _nearly_ the same we get by running `$ cargo init` (see [here](https://doc.rust-lang.org/cargo/reference/manifest.html), if you want to know more about `Cargo.toml` files). I just added [`termion`](https://gitlab.redox-os.org/redox-os/termion) which is our only dependency. `termion` is needed to create a REPL-like application. As mentioned in the _"Usage"_ section we want to _immediately_ show some transformed output of the user input. `termion` will cover the needs for this like clearing lines or moving the cursor in the terminal. [Because of a bug](https://gitlab.redox-os.org/redox-os/termion/issues/140) I actually specified to use the Git source of this crate. (Thank you @JoshMcguigan for the bug fix!):
 
 ```
 [package]
