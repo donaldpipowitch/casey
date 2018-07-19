@@ -29,16 +29,11 @@ struct State {
 
 impl State {
     fn build(value: String, col: usize, row: usize, done: bool) -> State {
-        let (width, height) = terminal_size().unwrap();
+        let (width_, height_) = terminal_size().unwrap();
+        let width = width_ as usize;
+        let height = height_ as usize;
 
-        State {
-            value: value,
-            width: width as usize,
-            height: height as usize,
-            col: col,
-            row: row,
-            done: done,
-        }
+        State { value, width, height, col, row, done }
     }
 
     fn new(value: String, col: usize, row: usize) -> State {
