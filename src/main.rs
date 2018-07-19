@@ -59,14 +59,15 @@ impl State {
         State::build(state.value, col as usize, row as usize, state.done)
     }
 
-    fn done(mut state: State) -> State {
+    fn done(state: State) -> State {
         // If there's text, jump to the lowercased line before
         // exiting, to avoid overwriting existing text.
+        let mut row = state.row;
         if !state.value.is_empty() {
-            state = State::move_cursor(state, 0, 2);
+            row += 2
         }
 
-        State::build(state.value, state.col, state.row, true)
+        State::build(state.value, state.col, row, true)
     }
 
     fn key(state: State, key: char) -> State {
