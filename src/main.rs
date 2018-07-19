@@ -31,43 +31,53 @@ impl State {
     }
 }
 
+// Move the cursor to the specified row and column.
 fn move_cursor<W: Write>(stdout: &mut RawTerminal<W>, col: usize, row: usize) {
     let goto = Goto(col as u16 + 1, row as u16);
     write!(stdout, "{}", goto).unwrap();
 }
 
+// Move the cursor to column zero of the
+// specified row, and clear the line.
 fn clear_row<W: Write>(stdout: &mut RawTerminal<W>, row: usize) {
     move_cursor(stdout, 0, row);
     write!(stdout, "{}", clear::CurrentLine).unwrap();
 }
 
+// Render the current state.
 fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
-    // clear rows to have a solid base
-    // this basically "writes" clear::CurrentLine beginning
-    // at the start_row and the next two rows
+    // Clear rows so we have a clean "canvas" to work with.
+    // The "canvas" is the current line and the following two lines.
     for i in 0..3 {
         clear_row(stdout, state.start_row + i);
     }
 
-    // get the formatted output and write it to the terminal
-    // if the formatted output contains multiple lines, it will
-    // render every line separately (to avoid some render bugs)
+    // Get the formatted output.
     let formatted = format_value(&state);
+
+    // Write it to the terminal.
+    // NOTE: If the formatted output contains multiple lines, it will
+    //       render every line separately to avoid render bugs.
     for (i, line) in formatted.lines().enumerate() {
-        // if we don't have enough space, because we're at the end
-        // of the terminal screen we need to create a new line
-        // and adjust the start_row
         let (_total_cols, total_rows) = terminal_size().unwrap();
+
+        // If we don't have enough space, due to being at the end
+        // of the terminal screen, print newlines to create more space
+        // and adjust start_row accordingly.
         if state.start_row + i > total_rows as usize {
             write!(stdout, "\n").unwrap();
             state.start_row -= 1;
         }
+
+        // Move the cursor to the start of the line, then print it.
         move_cursor(stdout, 0, state.start_row + i);
         write!(stdout, "{}", line).unwrap();
     }
 
+    // Move the terminal's cursor to where we want it to be.
     move_cursor(stdout, state.cursor_pos, state.start_row);
 
+    // Flush the cache to ensure everything is printed.
     stdout.flush().unwrap();
 }
 
@@ -110,6 +120,8 @@ fn main() {
                 break;
             }
             Key::Char('\n') => {
+                // If the user presses enter without any text, break
+                // out of the for loop so we can exit.
                 if state.value.is_empty() {
                     break;
                 }
