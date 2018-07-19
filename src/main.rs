@@ -32,11 +32,8 @@ impl State {
 }
 
 fn move_cursor<W: Write>(stdout: &mut RawTerminal<W>, col: usize, row: usize) {
-    write!(
-        stdout,
-        "{}",
-        Goto(col as u16 + 1, row as u16)
-    ).unwrap();
+    let goto = Goto(col as u16 + 1, row as u16);
+    write!(stdout, "{}", goto).unwrap();
 }
 
 fn clear_row<W: Write>(stdout: &mut RawTerminal<W>, row: usize) {
