@@ -28,7 +28,7 @@ struct State {
 }
 
 impl State {
-    fn new_(value: String, col: usize, row: usize, done: bool) -> State {
+    fn build(value: String, col: usize, row: usize, done: bool) -> State {
         let (width, height) = terminal_size().unwrap();
 
         State {
@@ -42,7 +42,7 @@ impl State {
     }
 
     fn new(value: String, col: usize, row: usize) -> State {
-        State::new_(value, col, row, false)
+        State::build(value, col, row, false)
     }
 
     fn move_cursor(state: State, col_offset: isize, row_offset: isize) -> State {
@@ -56,10 +56,7 @@ impl State {
             col = len;
         }
 
-        State::new_(state.value,
-                    col as usize,
-                    row as usize,
-                    state.done)
+        State::build(state.value, col as usize, row as usize, state.done)
     }
 
     fn done(mut state: State) -> State {
@@ -69,7 +66,7 @@ impl State {
             state = State::move_cursor(state, 0, 2);
         }
 
-        State::new_(state.value, state.col, state.row, true)
+        State::build(state.value, state.col, state.row, true)
     }
 
     fn key(state: State, key: char) -> State {
