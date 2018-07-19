@@ -47,7 +47,7 @@ impl State {
 
     fn move_cursor(state: State, col_offset: isize, row_offset: isize) -> State {
         let mut col = (state.col as isize) + col_offset;
-        let mut row = (state.row as isize) + row_offset;
+        let row = (state.row as isize) + row_offset;
 
         let len = state.value.len() as isize - 1;
         if col <= 0 {
@@ -152,7 +152,7 @@ fn format_value(state: &State) -> String {
     }
 }
 
-fn update_state<W: Write>(mut stdout: &mut RawTerminal<W>, mut state: State,
+fn update_state<W: Write>(_stdout: &mut RawTerminal<W>, state: State,
                           key: Result<Key, Error>) -> State {
     match key.unwrap() {
         Key::Ctrl('c') => State::done(state),
