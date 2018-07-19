@@ -1,6 +1,6 @@
 extern crate termion;
 
-use std::io::{stdin, stdout, Write};
+use std::io::{stdin, stdout, Error, Write};
 use termion::{clear,
               color,
               cursor::{DetectCursorPos, Goto},
@@ -22,11 +22,11 @@ struct State {
 }
 
 impl State {
-    fn new() -> State {
+    fn new(value: String, cursor_pos: usize, start_row: usize) -> State {
         State {
-            value: String::new(),
-            cursor_pos: 0,
-            start_row: 0,
+            value: value,
+            cursor_pos: cursor_pos,
+            start_row: start_row,
         }
     }
 }
@@ -44,7 +44,7 @@ fn clear_row<W: Write>(stdout: &mut RawTerminal<W>, row: usize) {
 }
 
 // Render the current state.
-fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
+fn render<W: Write>(stdout: &mut RawTerminal<W>, mut state: State) -> State {
     // Clear rows so we have a clean "canvas" to work with.
     // The "canvas" is the current line and the following two lines.
     for i in 0..3 {
@@ -65,7 +65,8 @@ fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
         // and adjust start_row accordingly.
         if state.start_row + i > total_rows as usize {
             write!(stdout, "\n").unwrap();
-            state.start_row -= 1;
+            state = State::new(state.value, state.cursor_pos,
+                                state.start_row - 1);
         }
 
         // Move the cursor to the start of the line, then print it.
@@ -78,6 +79,8 @@ fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
 
     // Flush the cache to ensure everything is printed.
     stdout.flush().unwrap();
+
+    state
 }
 
 fn format_value(state: &State) -> String {
@@ -99,67 +102,92 @@ fn format_value(state: &State) -> String {
     }
 }
 
+fn update_state<W: Write>(mut stdout: &mut RawTerminal<W>, state: State,
+                          key: Result<Key, Error>) -> (State, bool) {
+    match key.unwrap() {
+        Key::Ctrl('c') => {
+            // If there's text, jump to the lowercased line before
+            // exiting, to avoid overwriting existing text.
+            let mut start_row = state.start_row;
+            if !state.value.is_empty() {
+                start_row += 2;
+            }
+            let newstate = State::new(state.value, 0, start_row);
+            return (newstate, true);
+        }
+        Key::Char('\n') => {
+            // If the user presses enter without any text, break
+            // out of the for loop so we can exit.
+            if state.value.is_empty() {
+                return (state, true);
+            }
+
+            move_cursor(&mut stdout, 0, state.start_row + 2);
+            write!(stdout, "\n").unwrap();
+
+            let (_total_cols, total_rows) = terminal_size().unwrap();
+            let mut start_row = state.start_row + 2;
+            if start_row as u16 != total_rows {
+                start_row += 1;
+            }
+
+            let newstate = State::new(String::new(), 0, start_row);
+            return (newstate, false);
+        }
+        Key::Char(key) => {
+            let mut value = String::from(state.value);
+            value.push(key);
+            let newstate = State::new(value,
+                                       state.cursor_pos + 1,
+                                       state.start_row);
+
+            return (newstate, false);
+        }
+        Key::Backspace => {
+            if !state.value.is_empty() && state.cursor_pos != 0 {
+                let str_value = &state.value[0..(state.cursor_pos - 1)];
+                let value = String::from(str_value);
+
+                let newstate = State::new(value, state.cursor_pos - 1,
+                                           state.start_row);
+
+                return (newstate, false);
+            }
+        }
+        Key::Left => {
+            if state.cursor_pos > 0 {
+                let newstate = State::new(state.value, state.cursor_pos - 1,
+                                           state.start_row);
+                return (newstate, false)
+            }
+        }
+        Key::Right => {
+            if state.cursor_pos < state.value.len() - 1 {
+                let newstate = State::new(state.value, state.cursor_pos + 1,
+                                           state.start_row);
+                return (newstate, false)
+            }
+        }
+        _ => {}
+    }
+
+    (state, false)
+}
+
 fn main() {
     let mut stdout = stdout().into_raw_mode().unwrap();
 
     let (_col, start_row) = stdout.cursor_pos().unwrap();
-    let mut state = State::new();
-    state.start_row = start_row as usize;
-    render(&mut stdout, &mut state);
+    let mut state = State::new(String::new(), 0, start_row as usize);
+    state = render(&mut stdout, state);
 
     let stdin = stdin();
     for key in stdin.keys() {
-        match key.unwrap() {
-            Key::Ctrl('c') => {
-                // If there's text, jump to the lowercased line before
-                // exiting, to avoid overwriting existing text.
-                if !state.value.is_empty() {
-                    move_cursor(&mut stdout, 0, state.start_row + 2);
-                }
-                break;
-            }
-            Key::Char('\n') => {
-                // If the user presses enter without any text, break
-                // out of the for loop so we can exit.
-                if state.value.is_empty() {
-                    break;
-                }
-
-                move_cursor(&mut stdout, 0, state.start_row + 2);
-                write!(stdout, "\n").unwrap();
-
-                state.value = String::new();
-                state.cursor_pos = 0;
-                let (_total_cols, total_rows) = terminal_size().unwrap();
-                let end_of_screen = state.start_row as u16 + 2 == total_rows;
-                if end_of_screen {
-                    state.start_row += 2;
-                } else {
-                    state.start_row += 3;
-                }
-            }
-            Key::Char(key) => {
-                state.value.insert(state.cursor_pos, key);
-                state.cursor_pos += 1;
-            }
-            Key::Backspace => {
-                if !state.value.is_empty() && state.cursor_pos != 0 {
-                    state.value.remove(state.cursor_pos - 1);
-                    state.cursor_pos -= 1;
-                }
-            }
-            Key::Left => {
-                if state.cursor_pos > 0 {
-                    state.cursor_pos -= 1;
-                }
-            }
-            Key::Right => {
-                if state.cursor_pos < state.value.len() - 1 {
-                    state.cursor_pos += 1;
-                }
-            }
-            _ => {}
+        let (state_, done) = update_state(&mut stdout, state, key);
+        state = state_;
+        if done {
+            break;
         }
-        render(&mut stdout, &mut state);
+        state = render(&mut stdout, state);
     }
 }
