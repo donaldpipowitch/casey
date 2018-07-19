@@ -56,6 +56,17 @@ impl State {
     fn done(state: State) -> State {
         State::new_(state.value, state.col, state.row, true)
     }
+
+    fn backspace(state: State) -> State {
+        if state.value.is_empty() || state.col == 0 {
+            return state
+        }
+
+        let mut value = String::from(state.value);
+        value.remove(state.col - 1);
+
+        State::new(value, state.col - 1, state.row)
+    }
 }
 
 // Move the cursor to the specified row and column.
@@ -162,19 +173,10 @@ fn update_state<W: Write>(mut stdout: &mut RawTerminal<W>, mut state: State,
             value.insert(state.col, key);
             State::new(value, state.col + 1, state.row)
         }
-        Key::Backspace => {
-            if !state.value.is_empty() && state.col != 0 {
-                let mut value = String::from(state.value);
-                value.remove(state.col - 1);
-
-                State::new(value, state.col - 1, state.row)
-            } else {
-                state
-            }
-        }
-        Key::Left   => State::move_cursor(state, -1, 0),
-        Key::Right  => State::move_cursor(state,  1, 0),
-        _           => state,
+        Key::Backspace => State::backspace(state),
+        Key::Left      => State::move_cursor(state, -1, 0),
+        Key::Right     => State::move_cursor(state,  1, 0),
+        _              => state,
     }
 }
 
