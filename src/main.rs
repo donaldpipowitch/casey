@@ -95,7 +95,6 @@ fn format_value(state: &State) -> String {
 }
 
 fn main() {
-    let stdin = stdin();
     let mut stdout = stdout().into_raw_mode().unwrap();
 
     let (_col, start_row) = stdout.cursor_pos().unwrap();
@@ -103,11 +102,13 @@ fn main() {
     state.start_row = start_row as usize;
     render(&mut stdout, &mut state);
 
+    let stdin = stdin();
     for key in stdin.keys() {
         match key.unwrap() {
             Key::Ctrl('c') => {
                 if !state.value.is_empty() {
-                    // jump to lower cased line, before exiting
+                    // jump to lower cased line, before exiting in an non-empty state
+                    // so no line gets cropped
                     write!(stdout, "{}", Goto(1, state.start_row as u16 + 2)).unwrap();
                 }
                 break;
@@ -116,16 +117,12 @@ fn main() {
                 if state.value.is_empty() {
                     break;
                 } else {
-                    let (_col, start_row) = stdout.cursor_pos().unwrap();
-                    let (_total_cols, total_rows) = terminal_size().unwrap();
-                    let end_of_screen = start_row + 2 == total_rows;
+                    write!(stdout, "{}\n", Goto(1, state.start_row as u16 + 2)).unwrap();
 
-                    write!(stdout, "{}", Goto(1, state.start_row as u16 + 2)).unwrap();
-                    write!(stdout, "\n").unwrap();
-                    stdout.flush().unwrap();
                     state.value = String::new();
-
                     state.cursor_pos = 0;
+                    let (_total_cols, total_rows) = terminal_size().unwrap();
+                    let end_of_screen = state.start_row as u16 + 2 == total_rows;
                     if end_of_screen {
                         state.start_row += 2;
                     } else {
@@ -137,7 +134,6 @@ fn main() {
                 state.value.insert(state.cursor_pos, key);
                 state.cursor_pos += 1;
             }
-            // Key::Delete = entf
             Key::Backspace => {
                 if !state.value.is_empty() && state.cursor_pos != 0 {
                     state.value.remove(state.cursor_pos - 1);

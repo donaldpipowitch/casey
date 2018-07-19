@@ -14,7 +14,7 @@ $ cd casey
 $ cargo run
 ```
 
-You can than start to type any string. This string will be camel cased immediately in the following line and lower cased in the line after that. Note that this program currently doesn't handle multilines well.
+You can than start to type any string. This string will be camel cased immediately in the following line and lower cased in the line after that. Note that this program currently doesn't handle multilines, umlauts or other special characters or resizing the screen.
 
 Here is an example of what you would see:
 
@@ -24,7 +24,7 @@ Here is an example of what you would see:
 
 In this section I want to take about how this program was created, so you are able to create similar projets, fork this project or contribute back to it. I'm happy if you can point out any spelling mistakes as I'm not a native english speaker. In general you're allowed to contribute features back to this project (e.g. like multiline support), but keep in mind that I'll only accepts pull requests if this _"Contribute"_ section is kept in sync with the changes. I hope you'll enjoy the read 👋
 
-Before we start on word of warning. I found some parts of this code to be quite "flaky". Take [this commit](https://github.com/donaldpipowitch/casey/commit/6df76a451275e1834b280c22702d420164cd738e) as an example. I'd expect that the deleted line behaves like the two new lines - and on Windows they actually did. But not on my Mac. There are probably a lot more edge cases like that one, so take everything with a grain of salt.
+Before we start on word of warning. I found some parts of this code to be quite "flaky". Take [this commit](https://github.com/donaldpipowitch/casey/commit/6df76a451275e1834b280c22702d420164cd738e) as an example. I'd expect that the deleted line behaves like the two new lines - and on Windows they actually did. But not on my Mac. (Funningly enough I tested the original lines again 18 days later and now they work on a Mac. 🤔) There are probably a lot more edge cases like that one, so take everything with a grain of salt.
 
 To start make sure to have the same prequisites as mentioned in the _"Usage"_ section, namigly have [Rust installed with `rustup`](https://www.rust-lang.org).
 
@@ -128,7 +128,7 @@ Let's have a look at the `render` function. This one is actually the most comple
 - restore cursor position 💁‍
 - flush everything to the terminal (the _actual_ rendering in the terminal happens here)
 
-Besides the state we need to pass a `RawTerminal` to the `render` function. This is basically our canvas which will be written by the `render`.
+Besides the state we need to pass a `RawTerminal` to the `render` function. This is basically our canvas which will be written by the `render`. We literaly do this with the `write!` macro.
 
 ```rust
 fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
@@ -178,7 +178,7 @@ fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
 
 One thing I want to highlight again: This all seems to be quite flaky currently. As far as I know it should be fine to write a string to `stdout` which contains multiple new lines, but it doesn't work correctly for me on the machines where I tested my app. Sometimes a line was missing or wasn't cleared or the cursor position got messed upt. To get rid of all bugs, I actually needed to write every line separately.
 
-As you can see the `render` function calls a function I haven't previously talked about: `format_value`. It was previously part of the `render` function, but I extracted it out. One could argue that this would be the _real_ rendering function. It takes the _immutable_ state as its input and returns the string as the output. It doesn't know about the terminal and could generate a website in the same way for example. This function shows either an empty state or the state with the uppercased and lowercased output. Nicely formatted with some slight coloring.
+As you can see the `render` function calls a function I haven't previously talked about: `format_value`. It was previously part of the `render` function, but I extracted it out. One could argue that this would be the _real_ rendering function. It takes the _immutable_ state as its input and returns the string which should be rendered as the output. It doesn't know about the terminal and could generate a website in the same way for example. This function shows either an empty state or the state with the uppercased and lowercased output. Nicely formatted with some slight coloring.
 
 ```rust
 fn format_value(state: &State) -> String {
@@ -201,6 +201,114 @@ fn format_value(state: &State) -> String {
 }
 ```
 
+Having everything in place we can start initializing our state, handling "events" to update the state and call `render` on every state change. We do all of this in the `main` function.
+
+First we'll initialize our empty state. For that we'll need our `start_row`, which is basically the current line of the cursor. To get the `start_row` we create an instance of a raw terminal which we just call `stdout`. This is the one we'll pass to `render` as well. Having `stdout` and our initial `state` we can call `render` for the first time to print our empty state screen which should be _"Start typing..."_ in grey letters.
+
+```rust
+fn main() {
+    let mut stdout = stdout().into_raw_mode().unwrap();
+    let (_col, start_row) = stdout.cursor_pos().unwrap();
+    let mut state = State::new();
+    state.start_row = start_row as usize;
+    render(&mut stdout, &mut state);
+
+    // ...handle key presses here
+}
+```
+
+Now we'll react to "events". The only events we care about are key presses. To get "notified" about them we'll need a [handle of `stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), so we can iterate over key presses and than `match` on them to handle them in different ways. We are basically stuck in this iteration forever. So the first thing we'll do is adding an exit functionality whenever the user presses `Ctrl+C` (by using the `break` keyword) and just ignore everything else for now. We'll also call `render` at the end. While we don't update the state currently we'll need it in a minute, because all other key presses will modify our state in some way and we want to reflect this change in our GUI.
+
+```rust
+fn main() {
+    // the empty state screen...
+
+    let stdin = stdin();
+    for key in stdin.keys() {
+        match key.unwrap() {
+            Key::Ctrl('c') => {
+                if !state.value.is_empty() {
+                    // jump to lower cased line, before exiting in an non-empty state
+                    // so no line gets cropped
+                    write!(stdout, "{}", Goto(1, state.start_row as u16 + 2)).unwrap();
+                }
+                break;
+            }
+            // ...handle other keys here soon
+            _ => {}
+        }
+        render(&mut stdout, &mut state);
+    }
+}
+```
+
+Let's add the most complex key press handler in the next step. Everything else should be easier after that one. The key press handler I'm talking about is handling pressing the `Enter` key. Because this one will add a new line (which is expressed as `\n`), we'll actually handle a new line and not the `Enter` key directly. This handler will cover two different cases. Given we are still (or _again_ as you'll see soon) in the empty state we'll exit our application by using `break` again. Given we're in a non-empty state (e.g. _the user has typed something before_) we want to "keep" our current state by resetting the state and setting a new `start_row`, so our old state gets pushed upwards. We do that by jumping to the last line and adding a new line. Note that there are now two more cases we need to handle: are we at the end of the screen or not? That will influence the concrete new value of `start_row`, because we can't set the `start_row` to a non-visibile line when we are at the end of the screen. We can check, if we are at the end of the screen by calling `terminal_size()`.
+
+I hope this all makes sense and the following code helps to understand these cases better.
+
+```rust
+            Key::Ctrl('c') => {
+                // ...
+            }
+            Key::Char('\n') => {
+                if state.value.is_empty() {
+                    break;
+                } else {
+                    write!(stdout, "{}\n", Goto(1, state.start_row as u16 + 2)).unwrap();
+
+                    state.value = String::new();
+                    state.cursor_pos = 0;
+                    let (_total_cols, total_rows) = terminal_size().unwrap();
+                    let end_of_screen = state.start_row as u16 + 2 == total_rows;
+                    if end_of_screen {
+                        state.start_row += 2;
+                    } else {
+                        state.start_row += 3;
+                    }
+                }
+            }
+            // ...handle other keys here soon
+            _ => {}
+```
+
+Awesome! One last step and our application is complete. We need _four_ more key press handlers which are more simpler.
+- When we press any character key we'll insert this char into our current value at our current index (= the cursor position) and we'll move the cursor one character to the right.
+- When we press the left arrow we'll move the cursor one character to the left (if possible).
+- When we press the right arrow we'll move the cursor one character to the right (if possible).
+- When we press backspace we'll remove one character in our current value at our current index and we'll move the cursor one character to the left.
+
+```rust
+            Key::Ctrl('c') => {
+                // ...
+            }
+            Key::Char('\n') => {
+                // ...
+            }
+                        Key::Char(key) => {
+                state.value.insert(state.cursor_pos, key);
+                state.cursor_pos += 1;
+            }
+            Key::Backspace => {
+                if !state.value.is_empty() && state.cursor_pos != 0 {
+                    state.value.remove(state.cursor_pos - 1);
+                    state.cursor_pos -= 1;
+                }
+            }
+            Key::Left => {
+                if state.cursor_pos > 0 {
+                    state.cursor_pos -= 1;
+                }
+            }
+            Key::Right => {
+                if state.cursor_pos < state.value.len() - 1 {
+                    state.cursor_pos += 1;
+                }
+            }
+            _ => {}
+```
+
+Great. You can now run `$ cargo run` and should have a working application 😍
+
 ---
 
-Thanks for reading so far. I'd be happy to get feedback about this _"Tutorial as a `README.md`"_ format. It is an experiment to teach coding. I'd also be happy if you can point out.
+Thanks for reading so far. I'd be happy to get feedback about this _"Tutorial as a `README.md`"_ format. It is an experiment to teach coding. I'd also be happy if you can point out any spelling mistakes ❤️
