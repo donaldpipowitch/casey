@@ -28,33 +28,35 @@ struct State {
 }
 
 impl State {
-    fn build(value: String, col: usize, row: usize, done: bool) -> State {
+    fn new(value: String, col: usize, row: usize) -> State {
         let (width_, height_) = terminal_size().unwrap();
         let width = width_ as usize;
         let height = height_ as usize;
+        let done = false;
 
         State { value, width, height, col, row, done }
     }
 
-    fn new(value: String, col: usize, row: usize) -> State {
-        State::build(value, col, row, false)
-    }
-
     fn move_cursor(state: State, col_offset: isize, row_offset: isize) -> State {
-        let mut col = (state.col as isize) + col_offset;
-        let row = (state.row as isize) + row_offset;
+        let mut col_ = (state.col as isize) + col_offset;
+        let row_ = (state.row as isize) + row_offset;
 
         let len = state.value.len() as isize - 1;
-        if col <= 0 {
-            col = 1;
-        } else if col > len {
-            col = len;
+        if col_ <= 0 {
+            col_ = 1;
+        } else if col_ > len {
+            col_ = len;
         }
 
-        State::build(state.value, col as usize, row as usize, state.done)
+        let col = col_ as usize;
+        let row = row_ as usize;
+
+        State { col, row, ..state }
     }
 
     fn done(state: State) -> State {
+        let done = true;
+
         // If there's text, jump to the lowercased line before
         // exiting, to avoid overwriting existing text.
         let mut row = state.row;
@@ -62,7 +64,7 @@ impl State {
             row += 2
         }
 
-        State::build(state.value, state.col, row, true)
+        State { row, done, ..state }
     }
 
     fn key(state: State, key: char) -> State {
