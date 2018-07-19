@@ -49,7 +49,7 @@ authors = ["Donald Pipowitch <pipo@senaeh.de>"]
 termion = {git = "https://github.com/redox-os/termion"}
 ```
 
-The whole application was created in the `src/main.rs` file. First we'll import a couple of modules which we need for handling the terminal. Most of them should be quite self-explanatory. If you don't know them - no worry. You'll see how they are used in a bit.
+The whole application was created in the `src/main.rs` file. First we'll import a couple of modules which we need for handling input and output in the terminal. Most of them should be quite self-explanatory, but don't worry if they don't make sense for you now. You'll see how they are used in a bit.
 
 ```rust
 extern crate termion;
