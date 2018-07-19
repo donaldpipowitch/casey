@@ -112,10 +112,10 @@ fn main() {
     for key in stdin.keys() {
         match key.unwrap() {
             Key::Ctrl('c') => {
+                // If there's text, jump to the lowercased line before
+                // exiting, to avoid overwriting existing text.
                 if !state.value.is_empty() {
-                    // jump to lower cased line, before exiting in an non-empty state
-                    // so no line gets cropped
-                    write!(stdout, "{}", Goto(1, state.start_row as u16 + 2)).unwrap();
+                    move_cursor(&mut stdout, 0, state.start_row + 2);
                 }
                 break;
             }
