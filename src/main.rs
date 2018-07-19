@@ -72,6 +72,12 @@ impl State {
         State::new_(state.value, state.col, state.row, true)
     }
 
+    fn key(state: State, key: char) -> State {
+        let mut value = String::from(state.value);
+        value.insert(state.col, key);
+        State::new(value, state.col + 1, state.row)
+    }
+
     fn backspace(state: State) -> State {
         if state.value.is_empty() || state.col == 0 {
             return state
@@ -154,7 +160,7 @@ fn format_value(state: &State) -> String {
 
 fn update_state(state: State, key: Result<Key, Error>) -> State {
     match key.unwrap() {
-        Key::Ctrl('c') => State::done(state),
+        Key::Ctrl('c')  => State::done(state),
         Key::Char('\n') => {
             if state.value.is_empty() {
                 // If the user presses enter without any text, exit.
@@ -168,15 +174,11 @@ fn update_state(state: State, key: Result<Key, Error>) -> State {
                 State::new(String::new(), 0, row)
             }
         }
-        Key::Char(key) => {
-            let mut value = String::from(state.value);
-            value.insert(state.col, key);
-            State::new(value, state.col + 1, state.row)
-        }
-        Key::Backspace => State::backspace(state),
-        Key::Left      => State::move_cursor(state, -1, 0),
-        Key::Right     => State::move_cursor(state,  1, 0),
-        _              => state,
+        Key::Char(key)  => State::key(state, key),
+        Key::Backspace  => State::backspace(state),
+        Key::Left       => State::move_cursor(state, -1, 0),
+        Key::Right      => State::move_cursor(state,  1, 0),
+        _               => state,
     }
 }
 
