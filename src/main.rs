@@ -38,9 +38,18 @@ impl State {
     }
 
     fn move_cursor(state: State, col_offset: isize, row_offset: isize) -> State {
+        let mut col = (state.col as isize) + col_offset;
+        let mut row = (state.row as isize) + row_offset;
+
+        if col <= 0 {
+            col = 0;
+        } else if col > (state.value.len() as isize - 1) {
+            col = state.value.len() as isize - 1;
+        }
+
         State::new_(state.value,
-                    ((state.col as isize) + col_offset) as usize,
-                    ((state.row  as isize) + row_offset) as usize,
+                    col as usize,
+                    row as usize,
                     state.done)
     }
 
@@ -150,34 +159,22 @@ fn update_state<W: Write>(mut stdout: &mut RawTerminal<W>, mut state: State,
         }
         Key::Char(key) => {
             let mut value = String::from(state.value);
-            value.push(key);
+            value.insert(state.col, key);
             State::new(value, state.col + 1, state.row)
         }
         Key::Backspace => {
             if !state.value.is_empty() && state.col != 0 {
-                let str_value = &state.value[0..(state.col - 1)];
-                let value = String::from(str_value);
+                let mut value = String::from(state.value);
+                value.remove(state.col - 1);
 
                 State::new(value, state.col - 1, state.row)
             } else {
                 state
             }
         }
-        Key::Left => {
-            if state.col > 0 {
-                State::move_cursor(state, -1, 0)
-            } else {
-                state
-            }
-        }
-        Key::Right => {
-            if state.col < state.value.len() - 1 {
-                State::move_cursor(state, 1, 0)
-            } else {
-                state
-            }
-        }
-        _ => state,
+        Key::Left   => State::move_cursor(state, -1, 0),
+        Key::Right  => State::move_cursor(state,  1, 0),
+        _           => state,
     }
 }
 
