@@ -152,8 +152,7 @@ fn format_value(state: &State) -> String {
     }
 }
 
-fn update_state<W: Write>(_stdout: &mut RawTerminal<W>, state: State,
-                          key: Result<Key, Error>) -> State {
+fn update_state(state: State, key: Result<Key, Error>) -> State {
     match key.unwrap() {
         Key::Ctrl('c') => State::done(state),
         Key::Char('\n') => {
@@ -189,7 +188,7 @@ fn main() {
 
     let stdin = stdin();
     for key in stdin.keys() {
-        state = update_state(&mut stdout, state, key);
+        state = update_state(state, key);
         if state.done {
             break;
         }
