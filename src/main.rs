@@ -31,22 +31,17 @@ impl State {
     }
 }
 
-fn clear_row<W: Write>(stdout: &mut RawTerminal<W>, row: usize) {
-    write!(
-        stdout,
-        "{}{}",
-        Goto(1, row as u16),
-        clear::CurrentLine
-    ).unwrap();
-}
-
-fn move_cursor<W: Write>(stdout: &mut RawTerminal<W>,
-                         cursor_pos: usize, row: usize) {
+fn move_cursor<W: Write>(stdout: &mut RawTerminal<W>, col: usize, row: usize) {
     write!(
         stdout,
         "{}",
-        Goto(cursor_pos as u16 + 1, row as u16)
+        Goto(col as u16 + 1, row as u16)
     ).unwrap();
+}
+
+fn clear_row<W: Write>(stdout: &mut RawTerminal<W>, row: usize) {
+    move_cursor(stdout, 0, row);
+    write!(stdout, "{}", clear::CurrentLine).unwrap();
 }
 
 fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
