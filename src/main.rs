@@ -37,8 +37,7 @@ fn move_cursor<W: Write>(stdout: &mut RawTerminal<W>, col: usize, row: usize) {
     write!(stdout, "{}", goto).unwrap();
 }
 
-// Move the cursor to column zero of the
-// specified row, and clear the line.
+// Move the cursor to the beginning of the specified row, and clear the line.
 fn clear_row<W: Write>(stdout: &mut RawTerminal<W>, row: usize) {
     move_cursor(stdout, 0, row);
     write!(stdout, "{}", clear::CurrentLine).unwrap();
