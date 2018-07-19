@@ -176,7 +176,7 @@ fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
 }
 ```
 
-One thing I want to highlight again: This all seems to be quite flaky currently. As far as I know it should be fine to write a string to `stdout` which contains multiple new lines, but it doesn't work correctly for me on the machines where I tested my app. Sometimes a line was missing or wasn't cleared or the cursor position got messed upt. To get rid of all bugs, I actually needed to write every line separately.
+One thing I want to highlight again: This all seems to be quite flaky currently. As far as I know it should be fine to write a string to `stdout` which contains multiple new lines, but it doesn't work correctly for me on the machines where I tested my app. Sometimes a line was missing or wasn't cleared or the cursor position got messed up. To get rid of all bugs, I actually needed to write every line separately.
 
 As you can see the `render` function calls a function I haven't previously talked about: `format_value`. It was previously part of the `render` function, but I extracted it out. One could argue that this would be the _real_ rendering function. It takes the _immutable_ state as its input and returns the string which should be rendered as the output. It doesn't know about the terminal and could generate a website in the same way for example. This function shows either an empty state or the state with the uppercased and lowercased output. Nicely formatted with some slight coloring.
 
