@@ -11,13 +11,13 @@ use termion::{clear,
 
 #[derive(Debug)]
 struct State {
-    // contains the typed input of the user
+    // Contains the typed input from the user.
     value: String,
-    // tracks the cursor position (so the user can navigate with the
-    // left and right arrow keys within the input)
+    // Tracks cursor position (column).
+    // This allows the user to navigate using the left/right arrow keys.
     cursor_pos: usize,
-    // helps to keep track of the line where the user currently types
-    // this is partially needed by the render function as well
+    // Tracks the line the user is currently typing on.
+    // This is needed by the render() function.
     start_row: usize,
 }
 
