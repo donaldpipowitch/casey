@@ -28,11 +28,15 @@ struct State {
 }
 
 impl State {
-    fn new(value: String, col: usize, row: usize) -> State {
+    fn new(value: String, col: usize, mut row: usize) -> State {
         let (width_, height_) = terminal_size().unwrap();
         let width = width_ as usize;
         let height = height_ as usize;
         let done = false;
+
+        if row >= height {
+            row = height - 1;
+        }
 
         State { value, width, height, col, row, done }
     }
@@ -158,19 +162,9 @@ fn format_value(state: &State) -> String {
 fn update_state(state: State, key: Result<Key, Error>) -> State {
     match key.unwrap() {
         Key::Ctrl('c')  => State::done(state),
-        Key::Char('\n') => {
-            if state.value.is_empty() {
-                // If the user presses enter without any text, exit.
-                State::done(state)
-            } else {
-                let mut row = state.row + 2;
-                if row != state.height {
-                    row += 1;
-                }
-
-                State::new(String::new(), 0, row)
-            }
-        }
+        // If the user hits enter without typing anything, quit.
+        Key::Char('\n') if state.value.is_empty() => State::done(state),
+        Key::Char('\n') => State::new(String::new(), 0, state.row + 3),
         Key::Char(key)  => State::key(state, key),
         Key::Backspace  => State::backspace(state),
         Key::Left       => State::move_cursor(state, -1, 0),
