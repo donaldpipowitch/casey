@@ -117,7 +117,8 @@ fn main() {
                     break;
                 }
 
-                write!(stdout, "{}\n", Goto(1, state.start_row as u16 + 2)).unwrap();
+                move_cursor(&mut stdout, 0, state.start_row + 2);
+                write!(stdout, "\n").unwrap();
 
                 state.value = String::new();
                 state.cursor_pos = 0;
