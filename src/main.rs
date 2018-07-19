@@ -70,7 +70,9 @@ impl State {
     fn key(state: State, key: char) -> State {
         let mut value = String::from(state.value);
         value.insert(state.col, key);
-        State::new(value, state.col + 1, state.row)
+        let col = state.col + 1;
+
+        State { value, col, ..state }
     }
 
     fn backspace(state: State) -> State {
