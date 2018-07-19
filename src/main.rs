@@ -120,18 +120,18 @@ fn main() {
             Key::Char('\n') => {
                 if state.value.is_empty() {
                     break;
-                } else {
-                    write!(stdout, "{}\n", Goto(1, state.start_row as u16 + 2)).unwrap();
+                }
 
-                    state.value = String::new();
-                    state.cursor_pos = 0;
-                    let (_total_cols, total_rows) = terminal_size().unwrap();
-                    let end_of_screen = state.start_row as u16 + 2 == total_rows;
-                    if end_of_screen {
-                        state.start_row += 2;
-                    } else {
-                        state.start_row += 3;
-                    }
+                write!(stdout, "{}\n", Goto(1, state.start_row as u16 + 2)).unwrap();
+
+                state.value = String::new();
+                state.cursor_pos = 0;
+                let (_total_cols, total_rows) = terminal_size().unwrap();
+                let end_of_screen = state.start_row as u16 + 2 == total_rows;
+                if end_of_screen {
+                    state.start_row += 2;
+                } else {
+                    state.start_row += 3;
                 }
             }
             Key::Char(key) => {
