@@ -185,8 +185,7 @@ fn main() {
     let mut state = State::new(String::new(), 0, row as usize);
     state = render(&mut stdout, state);
 
-    let stdin = stdin();
-    for key in stdin.keys() {
+    for key in stdin().keys() {
         state = update_state(state, key);
         if state.done {
             break;
