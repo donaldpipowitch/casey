@@ -53,7 +53,13 @@ impl State {
                     state.done)
     }
 
-    fn done(state: State) -> State {
+    fn done(mut state: State) -> State {
+        // If there's text, jump to the lowercased line before
+        // exiting, to avoid overwriting existing text.
+        if !state.value.is_empty() {
+            state = State::move_cursor(state, 0, 2);
+        }
+
         State::new_(state.value, state.col, state.row, true)
     }
 
@@ -142,14 +148,7 @@ fn format_value(state: &State) -> String {
 fn update_state<W: Write>(mut stdout: &mut RawTerminal<W>, mut state: State,
                           key: Result<Key, Error>) -> State {
     match key.unwrap() {
-        Key::Ctrl('c') => {
-            // If there's text, jump to the lowercased line before
-            // exiting, to avoid overwriting existing text.
-            if !state.value.is_empty() {
-                state = State::move_cursor(state, 0, 2);
-            }
-            State::done(state)
-        }
+        Key::Ctrl('c') => State::done(state),
         Key::Char('\n') => {
             // If the user presses enter without any text, break
             // out of the for loop so we can exit.
