@@ -42,7 +42,7 @@ impl State {
         let mut row = (state.row as isize) + row_offset;
 
         if col <= 0 {
-            col = 0;
+            col = 1;
         } else if col > (state.value.len() as isize - 1) {
             col = state.value.len() as isize - 1;
         }
