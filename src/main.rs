@@ -11,13 +11,13 @@ use termion::{clear,
 
 #[derive(Debug)]
 struct State {
-    // contains the typed input of the user
+    // Contains the typed input from the user.
     value: String,
-    // tracks the cursor position (so the user can navigate with the
-    // left and right arrow keys within the input)
+    // Tracks the cursor position (column).
+    // This allows the user to navigate using the left/right arrow keys.
     cursor_pos: usize,
-    // helps to keep track of the line where the user currently types
-    // this is partially needed by the render function as well
+    // Tracks the line the user is currently typing on.
+    // This is needed by the render() function.
     start_row: usize,
 }
 
@@ -31,10 +31,13 @@ impl State {
     }
 }
 
+// Renders the current state.
 fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
-    // clear rows to have a solid base
-    // this basically "writes" clear::CurrentLine beginning
-    // at the start_row and the next two rows
+    // Clear rows so we have a clean "canvas" to work with.
+    // The "canvas" is the current line and the following two lines.
+    //
+    // This basically "writes" clear::CurrentLine beginning
+    // at the start_row and the next two rows.
     for i in 0..3 {
         write!(
             stdout,
@@ -44,19 +47,21 @@ fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
         ).unwrap();
     }
 
-    // get the formatted output and write it to the terminal
-    // if the formatted output contains multiple lines, it will
-    // render every line separately (to avoid some render bugs)
+    // Get the formatted output, and write it to the terminal.
+    // NOTE: If the formatted output contains multiple lines, it will
+    //       render every line separately, to avoid render bugs.
     let formatted = format_value(&state);
     for (i, line) in formatted.lines().enumerate() {
-        // if we don't have enough space, because we're at the end
-        // of the terminal screen we need to create a new line
-        // and adjust the start_row
+        // If we don't have enough space, due to being at the end
+        // of the terminal screen, print newlines to create more space
+        // and adjust `start_row` accordingly.
         let (_total_cols, total_rows) = terminal_size().unwrap();
         if state.start_row + i > total_rows as usize {
             write!(stdout, "\n").unwrap();
             state.start_row -= 1;
         }
+
+        // Move the cursor to the start of the line, then print it.
         write!(
             stdout,
             "{}{}",
@@ -65,13 +70,14 @@ fn render<W: Write>(stdout: &mut RawTerminal<W>, state: &mut State) {
         ).unwrap();
     }
 
-    // update cursor
+    // Move the terminal's cursor to where we want it to be.
     write!(
         stdout,
         "{}",
         Goto(state.cursor_pos as u16 + 1, state.start_row as u16)
     ).unwrap();
 
+    // Flush the cache to ensure everything is printed.
     stdout.flush().unwrap();
 }
 
